@@ -104,7 +104,12 @@ export async function POST(request: NextRequest) {
           hotelRating: dealData.hotelRating ?? null,
           boardBasis: dealData.boardBasis ?? null,
           imageUrl: dealData.imageUrl ?? null,
+          images: dealData.images ?? null,
           description: dealData.description ?? null,
+          amenities: dealData.amenities ?? null,
+          reviewScore: dealData.reviewScore ?? null,
+          reviewCount: dealData.reviewCount ?? null,
+          reviews: dealData.reviews ?? null,
           rawData: dealData.rawData ?? null,
         };
 

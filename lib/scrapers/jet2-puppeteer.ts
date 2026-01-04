@@ -134,11 +134,11 @@ export async function scrapeJet2WithPuppeteer(url: string): Promise<ScrapeResult
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     );
 
-    // Block unnecessary resources for speed
+    // Only block heavy resources, keep images for URL extraction
     await page.setRequestInterception(true);
     page.on("request", (req) => {
       const resourceType = req.resourceType();
-      if (["image", "stylesheet", "font", "media"].includes(resourceType)) {
+      if (["stylesheet", "font", "media"].includes(resourceType)) {
         req.abort();
       } else {
         req.continue();
@@ -149,17 +149,17 @@ export async function scrapeJet2WithPuppeteer(url: string): Promise<ScrapeResult
 
     // Navigate with timeout
     await page.goto(url, {
-      waitUntil: "domcontentloaded",
-      timeout: 45000,
+      waitUntil: "networkidle2",
+      timeout: 60000,
     });
 
     // Wait for key content to load
     await page.waitForSelector("h1", { timeout: 15000 }).catch(() => {});
 
-    // Additional wait for dynamic content
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    // Additional wait for dynamic content to fully load
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
-    // Extract data from page
+    // Extract comprehensive data from page
     const data = await page.evaluate(() => {
       // Helper to get text content safely
       const getText = (selector: string): string | null => {
@@ -167,22 +167,43 @@ export async function scrapeJet2WithPuppeteer(url: string): Promise<ScrapeResult
         return el?.textContent?.trim() || null;
       };
 
+      // Helper to get all text from multiple elements
+      const getAllText = (selector: string): string[] => {
+        const elements = document.querySelectorAll(selector);
+        return Array.from(elements)
+          .map((el) => el.textContent?.trim())
+          .filter((t): t is string => !!t);
+      };
+
       // Extract JSON-LD data
       let jsonLdName: string | null = null;
       let jsonLdImage: string | null = null;
       let jsonLdRating: string | null = null;
+      let jsonLdDescription: string | null = null;
+      let jsonLdAmenities: string[] = [];
+      let jsonLdReviewScore: number | null = null;
+      let jsonLdReviewCount: number | null = null;
 
       const jsonLdScripts = document.querySelectorAll(
         'script[type="application/ld+json"]'
       );
       for (const script of jsonLdScripts) {
         try {
-          const data = JSON.parse(script.textContent || "{}");
-          if (data["@type"] === "Hotel") {
-            jsonLdName = data.name || null;
-            jsonLdImage = data.image || null;
-            jsonLdRating = data.starRating?.ratingValue || null;
-            break;
+          const jsonData = JSON.parse(script.textContent || "{}");
+          if (jsonData["@type"] === "Hotel") {
+            jsonLdName = jsonData.name || null;
+            jsonLdImage = jsonData.image || null;
+            jsonLdRating = jsonData.starRating?.ratingValue || null;
+            jsonLdDescription = jsonData.description || null;
+            if (jsonData.amenityFeature) {
+              jsonLdAmenities = jsonData.amenityFeature
+                .map((a: { name?: string; value?: string }) => a.name || a.value)
+                .filter(Boolean);
+            }
+            if (jsonData.aggregateRating) {
+              jsonLdReviewScore = parseFloat(jsonData.aggregateRating.ratingValue) || null;
+              jsonLdReviewCount = parseInt(jsonData.aggregateRating.reviewCount) || null;
+            }
           }
         } catch {
           // Ignore parse errors
@@ -195,7 +216,7 @@ export async function scrapeJet2WithPuppeteer(url: string): Promise<ScrapeResult
         document.querySelector("h1")?.textContent?.trim() ||
         null;
 
-      // Get image URL
+      // Get main image URL
       const imageUrl =
         jsonLdImage ||
         document
@@ -206,9 +227,149 @@ export async function scrapeJet2WithPuppeteer(url: string): Promise<ScrapeResult
       // Get star rating from JSON-LD
       const starRating = jsonLdRating ? parseFloat(jsonLdRating) : null;
 
-      // Extract prices from page text
+      // Extract all image URLs from the page
+      const images: string[] = [];
+
+      // Look for gallery images
+      const galleryImages = document.querySelectorAll(
+        '[class*="gallery"] img, [class*="carousel"] img, [class*="slider"] img, [data-testid*="image"] img'
+      );
+      galleryImages.forEach((img) => {
+        const src = img.getAttribute("src") || img.getAttribute("data-src");
+        if (src && src.startsWith("http") && !images.includes(src)) {
+          images.push(src);
+        }
+      });
+
+      // Also look for srcset images
+      const allImages = document.querySelectorAll("img[src*='jet2'], img[src*='media']");
+      allImages.forEach((img) => {
+        const src = img.getAttribute("src");
+        if (src && src.startsWith("http") && src.includes("jet2") && !images.includes(src)) {
+          images.push(src);
+        }
+      });
+
+      // Extract description - look for common patterns
+      let description: string | null = jsonLdDescription;
+
+      if (!description) {
+        // Try to find description in various places
+        const descSelectors = [
+          '[class*="description"]',
+          '[class*="about"]',
+          '[class*="overview"]',
+          '[data-testid*="description"]',
+          'section p',
+          'article p',
+        ];
+
+        for (const selector of descSelectors) {
+          const elements = document.querySelectorAll(selector);
+          const texts: string[] = [];
+          elements.forEach((el) => {
+            const text = el.textContent?.trim();
+            if (text && text.length > 50 && text.length < 2000) {
+              texts.push(text);
+            }
+          });
+          if (texts.length > 0) {
+            description = texts.join("\n\n");
+            break;
+          }
+        }
+      }
+
+      // Extract amenities/facilities
+      let amenities: string[] = jsonLdAmenities;
+
+      if (amenities.length === 0) {
+        // Look for facility/amenity lists
+        const amenitySelectors = [
+          '[class*="facilities"] li',
+          '[class*="amenities"] li',
+          '[class*="features"] li',
+          '[data-testid*="facility"]',
+          '[data-testid*="amenity"]',
+        ];
+
+        for (const selector of amenitySelectors) {
+          const found = getAllText(selector);
+          if (found.length > 0) {
+            amenities = found.filter((a) => a.length < 100); // Filter out long strings
+            break;
+          }
+        }
+
+        // If still no amenities, look for icons with text
+        if (amenities.length === 0) {
+          const iconItems = document.querySelectorAll('[class*="icon"] + span, [class*="facility"]');
+          iconItems.forEach((item) => {
+            const text = item.textContent?.trim();
+            if (text && text.length > 2 && text.length < 50) {
+              amenities.push(text);
+            }
+          });
+        }
+      }
+
+      // Extract reviews
+      let reviewScore = jsonLdReviewScore;
+      let reviewCount = jsonLdReviewCount;
+      const reviews: { rating?: number; text?: string; author?: string }[] = [];
+
+      // Look for review score patterns in text
       const bodyText = document.body.innerText;
 
+      if (!reviewScore) {
+        // Match patterns like "4.5/5" or "4.5 out of 5" or "Rating: 4.5"
+        const scoreMatch = bodyText.match(/(\d+\.?\d*)\s*(?:\/\s*5|out of 5)/i);
+        if (scoreMatch) {
+          reviewScore = parseFloat(scoreMatch[1]);
+        }
+      }
+
+      if (!reviewCount) {
+        // Match patterns like "123 reviews" or "Based on 123 reviews"
+        const countMatch = bodyText.match(/(\d+)\s*reviews?/i);
+        if (countMatch) {
+          reviewCount = parseInt(countMatch[1]);
+        }
+      }
+
+      // Look for individual reviews
+      const reviewSelectors = [
+        '[class*="review"]',
+        '[data-testid*="review"]',
+        '[class*="testimonial"]',
+      ];
+
+      for (const selector of reviewSelectors) {
+        const reviewElements = document.querySelectorAll(selector);
+        reviewElements.forEach((el) => {
+          const text = el.textContent?.trim();
+          if (text && text.length > 20 && text.length < 1000) {
+            // Try to extract rating from the review element
+            const ratingEl = el.querySelector('[class*="rating"], [class*="star"]');
+            let rating: number | undefined;
+            if (ratingEl) {
+              const ratingText = ratingEl.textContent?.match(/(\d+\.?\d*)/);
+              if (ratingText) {
+                rating = parseFloat(ratingText[1]);
+              }
+            }
+
+            reviews.push({
+              text: text.substring(0, 500),
+              rating,
+            });
+          }
+        });
+
+        if (reviews.length >= 5) break; // Limit to 5 reviews
+      }
+
+      // Extract prices from page text
       // Match "Payable to Jet2holidays £X,XXX"
       const totalMatch = bodyText.match(
         /Payable to Jet2holidays[^£]*£([\d,]+)/i
@@ -249,16 +410,30 @@ export async function scrapeJet2WithPuppeteer(url: string): Promise<ScrapeResult
       return {
         hotelName,
         imageUrl,
+        images: images.slice(0, 10), // Limit to 10 images
         starRating,
         totalPrice,
         pricePerPerson,
         originalPrice,
         boardBasis,
+        description,
+        amenities: [...new Set(amenities)].slice(0, 20), // Unique, max 20
+        reviewScore,
+        reviewCount,
+        reviews: reviews.slice(0, 5), // Max 5 reviews
         pageTitle: document.title,
       };
     });
 
-    console.log(`[Puppeteer] Extracted data:`, data);
+    console.log(`[Puppeteer] Extracted data:`, {
+      hotelName: data.hotelName,
+      images: data.images?.length,
+      amenities: data.amenities?.length,
+      reviewScore: data.reviewScore,
+      reviewCount: data.reviewCount,
+      reviews: data.reviews?.length,
+      descriptionLength: data.description?.length,
+    });
 
     // Parse URL params and location
     const params = parseJet2Url(url);
@@ -312,7 +487,13 @@ export async function scrapeJet2WithPuppeteer(url: string): Promise<ScrapeResult
       hotelRating: data.starRating,
       boardBasis,
       imageUrl: data.imageUrl,
+      images: data.images?.length ? JSON.stringify(data.images) : null,
       url,
+      description: data.description,
+      amenities: data.amenities?.length ? JSON.stringify(data.amenities) : null,
+      reviewScore: data.reviewScore,
+      reviewCount: data.reviewCount,
+      reviews: data.reviews?.length ? JSON.stringify(data.reviews) : null,
       rawData: JSON.stringify({ params, extractedData: data, location }),
     };
 

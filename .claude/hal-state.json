@@ -1,5 +1,5 @@
 {
-  "activeTrack": null,
+  "activeTrack": "feat-frontend-deals",
   "lastSession": "2026-01-04",
   "tracks": [
     {
@@ -9,6 +9,13 @@
       "status": "completed",
       "created": "2026-01-04",
       "completed": "2026-01-04"
+    },
+    {
+      "id": "feat-frontend-deals",
+      "title": "Frontend Deals Display",
+      "phase": "Phase 1: Deal Detail Page",
+      "status": "in_progress",
+      "created": "2026-01-04"
     }
   ]
 }

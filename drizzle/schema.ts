@@ -43,10 +43,15 @@ export const deals = sqliteTable("deals", {
 
   // Media & links
   imageUrl: text("image_url"),
+  images: text("images"), // JSON array of image URLs
   url: text("url").notNull(),
 
   // Metadata
   description: text("description"),
+  amenities: text("amenities"), // JSON array of amenity strings
+  reviewScore: real("review_score"), // e.g., 4.5 out of 5
+  reviewCount: integer("review_count"),
+  reviews: text("reviews"), // JSON array of review objects
   rawData: text("raw_data"), // JSON string of original scraped data
   scrapeJobId: integer("scrape_job_id").references(() => scrapeJobs.id),
 
