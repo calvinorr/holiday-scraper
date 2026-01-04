@@ -1,0 +1,14 @@
+{
+  "activeTrack": null,
+  "lastSession": "2026-01-04",
+  "tracks": [
+    {
+      "id": "feat-db-scraping",
+      "title": "Database Schema & Scraping",
+      "phase": "Completed",
+      "status": "completed",
+      "created": "2026-01-04",
+      "completed": "2026-01-04"
+    }
+  ]
+}
