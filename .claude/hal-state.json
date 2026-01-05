@@ -17,6 +17,13 @@
       "status": "completed",
       "created": "2026-01-04",
       "completed": "2026-01-05"
+    },
+    {
+      "id": "feat-tui-gemini-images",
+      "title": "TUI Provider, Gemini AI & Images",
+      "phase": "Not Started",
+      "status": "pending",
+      "created": "2026-01-05"
     }
   ]
 }
