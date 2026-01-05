@@ -1,5 +1,5 @@
 {
-  "activeTrack": null,
+  "activeTrack": "feat-frontend-deals",
   "lastSession": "2026-01-04",
   "tracks": [
     {
@@ -13,10 +13,10 @@
     {
       "id": "feat-frontend-deals",
       "title": "Frontend Deals Display",
-      "phase": "Phase 2 Complete",
-      "status": "paused",
+      "phase": "Phase 3",
+      "status": "active",
       "created": "2026-01-04",
-      "note": "Phase 1-2 complete, Phase 3-4 pending (Search & Filtering, Polish)"
+      "note": "Phase 1-2 complete, resuming Phase 3 (Search & Filtering)"
     }
   ]
 }

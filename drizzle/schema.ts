@@ -1,5 +1,23 @@
 import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 
+// Hotels table - managed hotel information
+export const hotels = sqliteTable("hotels", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  destination: text("destination").notNull(), // e.g., "Tenerife"
+  country: text("country"), // e.g., "Spain"
+  resort: text("resort"), // e.g., "Costa Adeje"
+  rating: real("rating"), // star rating (1-5)
+  description: text("description"),
+  imageUrl: text("image_url"),
+  amenities: text("amenities"), // JSON array of amenity strings
+  address: text("address"),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  createdAt: text("created_at").notNull().default(new Date().toISOString()),
+  updatedAt: text("updated_at").notNull().default(new Date().toISOString()),
+});
+
 // Providers table - travel sites we scrape from
 export const providers = sqliteTable("providers", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -37,7 +55,8 @@ export const deals = sqliteTable("deals", {
   duration: integer("duration"), // nights
 
   // Accommodation
-  hotelName: text("hotel_name"),
+  hotelId: integer("hotel_id").references(() => hotels.id),
+  hotelName: text("hotel_name"), // kept for backward compatibility
   hotelRating: real("hotel_rating"), // star rating
   boardBasis: text("board_basis"), // e.g., "All Inclusive", "Half Board"
 
@@ -83,6 +102,8 @@ export const scrapeJobs = sqliteTable("scrape_jobs", {
 });
 
 // Type exports
+export type Hotel = typeof hotels.$inferSelect;
+export type NewHotel = typeof hotels.$inferInsert;
 export type Provider = typeof providers.$inferSelect;
 export type NewProvider = typeof providers.$inferInsert;
 export type Deal = typeof deals.$inferSelect;
