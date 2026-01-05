@@ -17,6 +17,7 @@ import {
   MessageSquare,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { PriceDisplay } from "@/components/PriceDisplay";
@@ -69,6 +70,28 @@ export default function DealPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!deal) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/deals/${deal.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        router.push("/");
+      } else {
+        setError(data.error || "Failed to delete deal");
+        setShowDeleteConfirm(false);
+      }
+    } catch {
+      setError("Failed to delete deal");
+      setShowDeleteConfirm(false);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     async function fetchDeal() {
@@ -162,9 +185,18 @@ export default function DealPage() {
         title={deal.title}
         showBack
         rightContent={
-          deal.provider && (
-            <span className="text-sm text-zinc-500">{deal.provider.name}</span>
-          )
+          <div className="flex items-center gap-3">
+            {deal.provider && (
+              <span className="text-sm text-zinc-500">{deal.provider.name}</span>
+            )}
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition-colors"
+              title="Delete deal"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         }
       />
 
@@ -423,6 +455,42 @@ export default function DealPage() {
           </div>
         </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-sm p-6">
+            <h2 className="text-lg font-medium mb-2">Delete Deal</h2>
+            <p className="text-sm text-zinc-400 mb-6">
+              Are you sure you want to delete <strong>{deal.title}</strong>? This action
+              cannot be undone.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="bg-red-600 hover:bg-red-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
