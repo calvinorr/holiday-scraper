@@ -14,9 +14,9 @@
 
 ## Phase 3: Hotels Schema & CRUD
 
-- [ ] Add hotels table to schema with migration <!-- commit: feat: add hotels table schema -->
-- [ ] Create /api/hotels route (GET list, POST create) <!-- commit: feat: add hotels API routes -->
-- [ ] Create /api/hotels/[id] route (GET, PUT, DELETE) <!-- commit: feat: add single hotel API route -->
+- [x] Add hotels table to schema with migration <!-- commit: feat: add hotels table schema -->
+- [x] Create /api/hotels route (GET list, POST create) <!-- commit: feat: add hotels API routes -->
+- [x] Create /api/hotels/[id] route (GET, PUT, DELETE) <!-- commit: feat: add single hotel API route -->
 - [ ] Create /admin/hotels page with list view <!-- commit: feat: add admin hotels list page -->
 - [ ] Add create hotel form/modal <!-- commit: feat: add hotel create form -->
 - [ ] Add edit hotel form/modal <!-- commit: feat: add hotel edit form -->
