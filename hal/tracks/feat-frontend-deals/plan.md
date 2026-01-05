@@ -24,11 +24,11 @@
 
 ## Phase 4: Deal Filtering
 
-- [ ] Add destination filter chips (from existing deals) <!-- commit: feat: add destination filter -->
-- [ ] Add price range filter (min/max inputs) <!-- commit: feat: add price range filter -->
-- [ ] Add board basis filter chips <!-- commit: feat: add board basis filter -->
-- [ ] Add sort dropdown (price, date, rating) <!-- commit: feat: add sort functionality -->
-- [ ] Update /api/deals to support all filter params <!-- commit: feat: extend deals API with filters -->
+- [x] Add destination filter chips (from existing deals) <!-- commit: feat: add deal filters -->
+- [x] Add price range filter (min/max inputs) <!-- commit: feat: add deal filters -->
+- [x] Add board basis filter chips <!-- commit: feat: add deal filters -->
+- [x] Add sort dropdown (price, date, rating) <!-- commit: feat: add deal filters -->
+- [x] Update /api/deals to support all filter params <!-- commit: already supported -->
 
 ## Phase 5: Polish
 

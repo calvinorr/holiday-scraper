@@ -1,24 +1,84 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Plane, Loader2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { DealCard, type Deal } from "@/components/DealCard";
+import { DealFilters, type FilterState } from "@/components/DealFilters";
 
 export default function Home() {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [deals, setDeals] = useState<Deal[]>([]);
+  const [allDeals, setAllDeals] = useState<Deal[]>([]); // For deriving filter options
   const [loadingDeals, setLoadingDeals] = useState(true);
+  const [filters, setFilters] = useState<FilterState | null>(null);
 
+  // Derive unique destinations and board types from all deals
+  const destinations = useMemo(() => {
+    const unique = [...new Set(allDeals.map((d) => d.destination).filter(Boolean))];
+    return unique.sort();
+  }, [allDeals]);
+
+  const boardTypes = useMemo(() => {
+    const unique = [...new Set(allDeals.map((d) => d.boardBasis).filter(Boolean))] as string[];
+    return unique.sort();
+  }, [allDeals]);
+
+  // Fetch all deals once for filter options
   useEffect(() => {
-    fetchDeals();
+    fetchAllDeals();
   }, []);
 
-  async function fetchDeals() {
+  // Fetch filtered deals when filters change
+  useEffect(() => {
+    if (filters) {
+      fetchDeals(filters);
+    }
+  }, [filters]);
+
+  async function fetchAllDeals() {
     try {
-      const res = await fetch("/api/deals");
+      const res = await fetch("/api/deals?limit=100");
+      const data = await res.json();
+      if (data.success) {
+        setAllDeals(data.data);
+        setDeals(data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch deals:", error);
+    } finally {
+      setLoadingDeals(false);
+    }
+  }
+
+  async function fetchDeals(filterState: FilterState) {
+    setLoadingDeals(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("limit", "100");
+
+      if (filterState.destination) {
+        params.set("destination", filterState.destination);
+      }
+      if (filterState.minPrice) {
+        params.set("minPrice", filterState.minPrice);
+      }
+      if (filterState.maxPrice) {
+        params.set("maxPrice", filterState.maxPrice);
+      }
+      if (filterState.boardBasis) {
+        params.set("board", filterState.boardBasis);
+      }
+      if (filterState.sortBy) {
+        params.set("sortBy", filterState.sortBy);
+      }
+      if (filterState.sortOrder) {
+        params.set("sortOrder", filterState.sortOrder);
+      }
+
+      const res = await fetch(`/api/deals?${params.toString()}`);
       const data = await res.json();
       if (data.success) {
         setDeals(data.data);
@@ -29,6 +89,10 @@ export default function Home() {
       setLoadingDeals(false);
     }
   }
+
+  const handleFilterChange = useCallback((newFilters: FilterState) => {
+    setFilters(newFilters);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,7 +113,7 @@ export default function Home() {
       if (data.success && data.summary.successful > 0) {
         setMessage({ type: "success", text: "Deal scraped and saved!" });
         setUrl("");
-        fetchDeals();
+        fetchAllDeals(); // Refresh all deals to update filter options
       } else {
         const error = data.results?.[0]?.error || "Failed to scrape deal";
         setMessage({ type: "error", text: error });
@@ -130,6 +194,15 @@ export default function Home() {
               <span className="text-zinc-500">({deals.length})</span>
             )}
           </h2>
+
+          {/* Filters */}
+          {allDeals.length > 0 && (
+            <DealFilters
+              onFilterChange={handleFilterChange}
+              destinations={destinations}
+              boardTypes={boardTypes}
+            />
+          )}
 
           {loadingDeals ? (
             <div className="text-center py-12 text-zinc-500">
