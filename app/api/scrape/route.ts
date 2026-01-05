@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
 import { scrapeJet2WithPuppeteer, closeBrowser } from "@/lib/scrapers/jet2-puppeteer";
-import { eq } from "drizzle-orm";
+import { eq, and, like } from "drizzle-orm";
 import { z } from "zod";
+
+// Extract base URL path for duplicate detection (ignores query params)
+function getUrlBasePath(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    return url;
+  }
+}
 
 const scrapeRequestSchema = z.object({
   urls: z.array(z.string().url()).min(1).max(50),
@@ -113,10 +123,21 @@ export async function POST(request: NextRequest) {
           rawData: dealData.rawData ?? null,
         };
 
-        // Check if deal already exists (by URL)
-        const existing = await db.query.deals.findFirst({
-          where: eq(schema.deals.url, url),
-        });
+        // Check if deal already exists (by URL base path + departure date)
+        const urlBasePath = getUrlBasePath(url);
+        const existing = await db
+          .select()
+          .from(schema.deals)
+          .where(
+            and(
+              like(schema.deals.url, `${urlBasePath}%`),
+              validatedDeal.departureDate
+                ? eq(schema.deals.departureDate, validatedDeal.departureDate)
+                : undefined
+            )
+          )
+          .limit(1)
+          .then((rows) => rows[0]);
 
         if (existing) {
           // Update existing deal
