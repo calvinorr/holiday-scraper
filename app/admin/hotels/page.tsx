@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
+import { HotelTableSkeleton } from "@/components/Skeleton";
 import {
   Plus,
   Pencil,
@@ -242,10 +243,7 @@ export default function AdminHotelsPage() {
 
         {/* Hotels List */}
         {loading ? (
-          <div className="text-center py-12 text-zinc-500">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-            Loading hotels...
-          </div>
+          <HotelTableSkeleton count={5} />
         ) : hotels.length === 0 ? (
           <div className="text-center py-12 text-zinc-500 bg-zinc-900/50 rounded-xl border border-zinc-800">
             <Building2 className="w-8 h-8 mx-auto mb-3 opacity-50" />

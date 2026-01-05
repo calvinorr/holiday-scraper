@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plane, ArrowLeft } from "lucide-react";
+import { Plane, ArrowLeft, Building2 } from "lucide-react";
 
 interface HeaderProps {
   title?: string;
@@ -24,7 +25,9 @@ export function Header({ title, showBack = false, rightContent }: HeaderProps) {
             <span className="hidden sm:inline">Back</span>
           </button>
         ) : (
-          <Plane className="w-6 h-6 text-emerald-500" />
+          <Link href="/" className="text-emerald-500 hover:text-emerald-400 transition-colors">
+            <Plane className="w-6 h-6" />
+          </Link>
         )}
 
         <h1 className="text-xl font-semibold tracking-tight flex-1 truncate">
@@ -32,7 +35,16 @@ export function Header({ title, showBack = false, rightContent }: HeaderProps) {
         </h1>
 
         {rightContent || (
-          <span className="text-sm text-zinc-500">Belfast (BFS)</span>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/admin/hotels"
+              className="text-zinc-400 hover:text-white flex items-center gap-1.5 text-sm transition-colors"
+            >
+              <Building2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Hotels</span>
+            </Link>
+            <span className="text-sm text-zinc-500">Belfast (BFS)</span>
+          </div>
         )}
       </div>
     </header>

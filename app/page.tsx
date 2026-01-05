@@ -5,6 +5,7 @@ import { Plane, Loader2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { DealCard, type Deal } from "@/components/DealCard";
 import { DealFilters, type FilterState } from "@/components/DealFilters";
+import { DealCardSkeletonGrid, FiltersSkeleton } from "@/components/Skeleton";
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -205,10 +206,10 @@ export default function Home() {
           )}
 
           {loadingDeals ? (
-            <div className="text-center py-12 text-zinc-500">
-              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-              Loading deals...
-            </div>
+            <>
+              <FiltersSkeleton />
+              <DealCardSkeletonGrid count={6} />
+            </>
           ) : deals.length === 0 ? (
             <div className="text-center py-12 text-zinc-500 bg-zinc-900/50 rounded-xl border border-zinc-800">
               <Plane className="w-8 h-8 mx-auto mb-3 opacity-50" />

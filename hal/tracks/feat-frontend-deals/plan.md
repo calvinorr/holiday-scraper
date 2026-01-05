@@ -32,8 +32,8 @@
 
 ## Phase 5: Polish
 
-- [ ] Ensure mobile responsive layout <!-- commit: style: improve mobile responsiveness -->
-- [ ] Add loading skeletons for better UX <!-- commit: feat: add loading skeletons -->
+- [x] Ensure mobile responsive layout <!-- commit: style: improve mobile responsiveness -->
+- [x] Add loading skeletons for better UX <!-- commit: feat: add loading skeletons -->
 
 ---
 
